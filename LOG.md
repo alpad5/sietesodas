@@ -7,6 +7,8 @@ Newest context first. The session notes below are the original design log; where
 ### UI
 - [ ] Publish form: sellers do not realize the delete button only appears after publishing. Add a notice before publishing saying it will appear in this browser and that there is no other way to access the post (the owner token lives in `localStorage`).
 
+- [ ] UI and aesthetics pass (waiting on the user's inspiration). Goals: keep the site lightning fast and ultra light (no frameworks, no heavy assets), but make it catchy on the eyes, with tiny, almost unnoticeable animations where they add feel: clicking a category, filtering results, publishing. Prefer CSS-only transitions.
+
 ### Next features
 - [ ] Private storage for the seller's contact email (never in the public post payload), kept in step with the post's lifetime and deleted when the post expires or is deleted.
 - [ ] Email provider with inbound and outbound mail, then the masked alias relay (alias to post mapping, reply rewriting, loop and spam protection). A contact email to the alias extends the post to the 30-day cap.
