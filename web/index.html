@@ -15,8 +15,7 @@
   button { cursor: pointer; border: 1px solid var(--texto); background: var(--texto); color: var(--fondo); padding: .45rem .9rem; border-radius: 6px; }
   button.sec { background: transparent; color: var(--texto); border-color: var(--linea); }
   input, select, textarea { width: 100%; padding: .5rem .6rem; border: 1px solid var(--linea); border-radius: 6px; background: #fff; }
-  form.busqueda { display: grid; grid-template-columns: 1fr auto auto; gap: .5rem; margin: 1rem 0 .5rem; }
-  form.busqueda input { grid-column: 1; }
+  form.busqueda { display: grid; grid-template-columns: 1fr auto; gap: .5rem; margin: 1rem 0 .5rem; }
   nav { display: flex; flex-wrap: wrap; gap: .4rem; margin: .5rem 0 .25rem; }
   nav button { padding: .25rem .7rem; font-size: .9rem; }
   nav button.activa { background: var(--texto); color: var(--fondo); border-color: var(--texto); }
@@ -53,11 +52,6 @@
 
   <form class="busqueda" id="busqueda">
     <input name="q" type="search" placeholder="Buscar guitarra, pedal, bajo…">
-    <select name="radio" aria-label="Distancia">
-      <option value="1">1 km</option>
-      <option value="5">5 km</option>
-      <option value="10" selected>10 km</option>
-    </select>
     <button type="submit">Buscar</button>
   </form>
   <nav id="categorias" aria-label="Categorías"></nav>
@@ -76,7 +70,8 @@ const el = (tag, texto, clase) => {
 
 let categorias = [];
 let categoria = '';
-let ubicacion = { lat: 40.4168, lng: -3.7038, real: false }; // Madrid, por defecto
+const RADIO_KM = 10; // el servidor lo limita a su máximo
+let ubicacion = { lat: -34.9011, lng: -56.1645, real: false }; // Montevideo, por defecto
 
 const mias = () => JSON.parse(localStorage.getItem('mias') || '{}');
 const guardarMias = (m) => localStorage.setItem('mias', JSON.stringify(m));
@@ -105,13 +100,13 @@ function pintarCategorias() {
 
 async function buscar() {
   const f = new FormData($('#busqueda'));
-  const cuerpo = { lat: ubicacion.lat, lng: ubicacion.lng, radius_km: Number(f.get('radio')) };
+  const cuerpo = { lat: ubicacion.lat, lng: ubicacion.lng, radius_km: RADIO_KM };
   if (categoria) cuerpo.category = categoria;
   if (f.get('q').trim()) cuerpo.q = f.get('q').trim();
   const res = $('#resultados');
   try {
     const posts = await api('POST', '/search', cuerpo);
-    $('#estado').textContent = (ubicacion.real ? 'Cerca de ti' : 'Cerca de Madrid centro (ubicación por defecto)')
+    $('#estado').textContent = (ubicacion.real ? 'Cerca de ti' : 'Cerca del centro de Montevideo (ubicación por defecto)')
       + ' · ' + posts.length + (posts.length === 1 ? ' anuncio' : ' anuncios');
     res.replaceChildren(...posts.map(tarjeta));
   } catch (e) {
