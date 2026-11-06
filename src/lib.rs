@@ -2,8 +2,9 @@
 
 mod post;
 mod search;
+mod web;
 
-use axum::routing::post;
+use axum::routing::{get, post};
 use axum::Router;
 use qhlv::AppState;
 use redis::aio::ConnectionManager;
@@ -30,9 +31,11 @@ pub fn app_state(redis: ConnectionManager) -> AppState {
     )
 }
 
-/// The engine's routes plus `/search`.
+/// The web page, `/categorias`, `/search` and the engine's own routes.
 pub fn router(state: AppState) -> Router {
     Router::new()
+        .route("/", get(web::index))
+        .route("/categorias", get(web::categorias))
         .route("/search", post(search::search))
         .with_state(state.clone())
         .merge(qhlv::router(state))

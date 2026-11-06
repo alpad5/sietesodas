@@ -49,6 +49,14 @@ async fn post(app: &axum::Router, uri: &str, body: Value) -> (StatusCode, Value)
     (status, serde_json::from_slice(&bytes).unwrap_or(Value::Null))
 }
 
+async fn get(app: &axum::Router, uri: &str) -> (StatusCode, String) {
+    let req = Request::builder().uri(uri).body(Body::empty()).unwrap();
+    let res = app.clone().oneshot(req).await.unwrap();
+    let status = res.status();
+    let bytes = res.into_body().collect().await.unwrap().to_bytes();
+    (status, String::from_utf8(bytes.to_vec()).unwrap())
+}
+
 fn publish(title: &str, category: &str) -> Value {
     json!({
         "payload": {"title": title, "category": category, "description": "great shape", "price": 250},
@@ -81,30 +89,38 @@ async fn publish_validate_and_search() {
     let (_redis, app, mut con) = start().await;
 
     for (title, category) in [
-        ("Fender Stratocaster", "guitars"),
-        ("Yamaha acoustic", "guitars"),
-        ("Marshall stack", "amps"),
+        ("Fender Stratocaster", "guitarras"),
+        ("Yamaha acoustic", "guitarras"),
+        ("Marshall stack", "amplificadores"),
     ] {
         let (status, created) = post(&app, "/objects", publish(title, category)).await;
         assert_eq!(status, StatusCode::OK);
         assert!(created["owner_token"].is_string());
     }
 
+    // The page and its category list are served in Spanish.
+    let (status, page) = get(&app, "/").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("<html lang=\"es\">"));
+    let (_, cats) = get(&app, "/categorias").await;
+    let cats: Value = serde_json::from_str(&cats).unwrap();
+    assert_eq!(cats[0], json!({"id": "guitarras", "nombre": "Guitarras"}));
+
     // Bad category and missing title are rejected by the post validator.
-    let (status, _) = post(&app, "/objects", publish("Tractor", "vehicles")).await;
+    let (status, _) = post(&app, "/objects", publish("Tractor", "vehiculos")).await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
-    let bad = json!({"payload": {"category": "guitars"}, "locator": {"lat": 40.0, "lng": -3.0}});
+    let bad = json!({"payload": {"category": "guitarras"}, "locator": {"lat": 40.0, "lng": -3.0}});
     let (status, _) = post(&app, "/objects", bad).await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
 
     // Radius only, category, text, and both combined.
     let (_, all) = post(&app, "/search", search(json!({}))).await;
     assert_eq!(all.as_array().unwrap().len(), 3);
-    let (_, guitars) = post(&app, "/search", search(json!({"category": "guitars"}))).await;
+    let (_, guitars) = post(&app, "/search", search(json!({"category": "guitarras"}))).await;
     assert_eq!(titles(&guitars), ["Fender Stratocaster", "Yamaha acoustic"]);
     let (_, fender) = post(&app, "/search", search(json!({"q": "FENDER strato"}))).await;
     assert_eq!(titles(&fender), ["Fender Stratocaster"]);
-    let (_, none) = post(&app, "/search", search(json!({"category": "amps", "q": "fender"}))).await;
+    let (_, none) = post(&app, "/search", search(json!({"category": "amplificadores", "q": "fender"}))).await;
     assert!(none.as_array().unwrap().is_empty());
 
     // Far away finds nothing.
