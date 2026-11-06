@@ -43,7 +43,7 @@
   <form id="publicar" autocomplete="off">
     <label>Título <input name="titulo" maxlength="100" required></label>
     <label>Categoría <select name="categoria" required></select></label>
-    <label>Precio (€, opcional) <input name="precio" type="number" min="0" step="any"></label>
+    <label>Precio ($, opcional) <input name="precio" type="number" min="0" step="any"></label>
     <label>Descripción <textarea name="descripcion" rows="4" maxlength="2000"></textarea></label>
     <div><button type="submit">Publicar</button> <button type="button" class="sec" id="cancelar-publicar">Cancelar</button></div>
     <div class="error" id="error-publicar"></div>
@@ -118,7 +118,7 @@ function tarjeta(p) {
   const d = p.payload;
   const c = el('article', undefined, 'tarjeta');
   const h = el('h3');
-  h.append(el('span', d.title), el('span', d.price != null ? d.price + ' €' : ''));
+  h.append(el('span', d.title), el('span', d.price != null ? '$' + d.price : ''));
   c.append(h, el('div', nombreCategoria(d.category), 'meta'));
   if (d.description) c.append(el('p', d.description));
   const token = mias()[p.id];
