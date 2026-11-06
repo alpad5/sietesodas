@@ -1,9 +1,11 @@
 //! sietesodas: anonymous local classifieds, built on the qhlv engine.
 
+mod guard;
 mod post;
 mod search;
 mod web;
 
+use axum::middleware::from_fn_with_state;
 use axum::routing::{get, post};
 use axum::Router;
 use qhlv::AppState;
@@ -31,12 +33,20 @@ pub fn app_state(redis: ConnectionManager) -> AppState {
     )
 }
 
-/// The web page, `/categorias`, `/search` and the engine's own routes.
-pub fn router(state: AppState) -> Router {
+/// The web page, `/categorias`, `/search`, `/desafio`, and the engine's routes
+/// behind the spam guard. `pow_secret` signs the proof-of-work challenges.
+pub fn router(state: AppState, pow_secret: &str) -> Router {
+    let guard = guard::Guard::new(state.redis.clone(), pow_secret);
+    let challenge = Router::new()
+        .route("/desafio", get(guard::challenge))
+        .with_state(guard.clone());
+    let engine = qhlv::router(state.clone()).layer(from_fn_with_state(guard, guard::check));
+
     Router::new()
         .route("/", get(web::index))
         .route("/categorias", get(web::categorias))
         .route("/search", post(search::search))
-        .with_state(state.clone())
-        .merge(qhlv::router(state))
+        .with_state(state)
+        .merge(challenge)
+        .merge(engine)
 }
