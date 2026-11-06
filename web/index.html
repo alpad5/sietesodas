@@ -76,8 +76,8 @@ let ubicacion = { lat: -34.9011, lng: -56.1645, real: false }; // Montevideo, po
 const mias = () => JSON.parse(localStorage.getItem('mias') || '{}');
 const guardarMias = (m) => localStorage.setItem('mias', JSON.stringify(m));
 
-async function api(metodo, ruta, cuerpo, token) {
-  const cabeceras = {};
+async function api(metodo, ruta, cuerpo, token, extra) {
+  const cabeceras = { ...extra };
   if (cuerpo) cabeceras['content-type'] = 'application/json';
   if (token) cabeceras['x-owner-token'] = token;
   const r = await fetch(ruta, { method: metodo, headers: cabeceras, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
@@ -86,6 +86,25 @@ async function api(metodo, ruta, cuerpo, token) {
 }
 
 const nombreCategoria = (id) => (categorias.find((c) => c.id === id) || {}).nombre || id;
+
+// Prueba de trabajo (ALTCHA, PBKDF2/SHA-256): busca un contador cuya clave derivada
+// empiece por el prefijo exigido. El servidor emite el desafío y lo verifica.
+const aBytes = (hex) => Uint8Array.from(hex.match(/../g) || [], (b) => parseInt(b, 16));
+const aHex = (bytes) => [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+
+async function resolverDesafio(desafio) {
+  const p = desafio.parameters;
+  const nonce = aBytes(p.nonce), salt = aBytes(p.salt), prefijo = aBytes(p.keyPrefix);
+  for (let contador = 0; ; contador++) {
+    const clave = new Uint8Array(nonce.length + 4);
+    clave.set(nonce);
+    new DataView(clave.buffer).setUint32(nonce.length, contador); // big-endian
+    const base = await crypto.subtle.importKey('raw', clave, 'PBKDF2', false, ['deriveBits']);
+    const bits = new Uint8Array(await crypto.subtle.deriveBits(
+      { name: 'PBKDF2', hash: 'SHA-256', salt, iterations: p.cost }, base, p.keyLength * 8));
+    if (prefijo.every((b, i) => bits[i] === b)) return { counter: contador, derivedKey: aHex(bits) };
+  }
+}
 
 function pintarCategorias() {
   const nav = $('#categorias');
@@ -152,8 +171,13 @@ formPublicar.onsubmit = async (e) => {
   if (f.get('descripcion').trim()) payload.description = f.get('descripcion').trim();
   if (f.get('precio') !== '') payload.price = Number(f.get('precio'));
   $('#error-publicar').textContent = '';
+  const boton = formPublicar.querySelector('button[type=submit]');
+  boton.disabled = true;
+  boton.textContent = 'Verificando…';
   try {
-    const creado = await api('POST', '/objects', { payload, locator: { lat: ubicacion.lat, lng: ubicacion.lng }, owned: true });
+    const desafio = await api('GET', '/desafio');
+    const pow = JSON.stringify({ challenge: desafio, solution: await resolverDesafio(desafio) });
+    const creado = await api('POST', '/objects', { payload, locator: { lat: ubicacion.lat, lng: ubicacion.lng }, owned: true }, null, { 'x-pow': pow });
     const m = mias(); m[creado.id] = creado.owner_token; guardarMias(m);
     formPublicar.reset();
     formPublicar.classList.remove('abierto');
@@ -163,6 +187,9 @@ formPublicar.onsubmit = async (e) => {
     buscar();
   } catch (err) {
     $('#error-publicar').textContent = err.message;
+  } finally {
+    boton.disabled = false;
+    boton.textContent = 'Publicar';
   }
 };
 
