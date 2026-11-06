@@ -1,5 +1,17 @@
 # sietesodas log
 
+## Open TODOs
+
+Newest context first. The session notes below are the original design log; where they disagree with this list or the code, this list and the code win.
+
+### UI
+- [ ] Publish form: sellers do not realize the delete button only appears after publishing. Add a notice before publishing saying it will appear in this browser and that there is no other way to access the post (the owner token lives in `localStorage`).
+
+### Next features
+- [ ] Private storage for the seller's contact email (never in the public post payload), kept in step with the post's lifetime and deleted when the post expires or is deleted.
+- [ ] Email provider with inbound and outbound mail, then the masked alias relay (alias to post mapping, reply rewriting, loop and spam protection). A contact email to the alias extends the post to the 30-day cap.
+- [ ] Deployment: set `POW_SECRET`, and take the client IP from a trusted proxy header instead of the socket address.
+
 ## 2026-11-05 — Core idea session
 
 ### Summary
