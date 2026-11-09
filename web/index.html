@@ -29,6 +29,7 @@
   #publicar { display: none; border: 1px solid var(--linea); background: #fff; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
   #publicar.abierto { display: grid; gap: .6rem; }
   label { display: grid; gap: .2rem; font-size: .9rem; color: var(--suave); }
+  .nota { margin: 0; font-size: .85rem; color: var(--suave); background: #fffbeb; border: 1px solid #f3e2a9; border-radius: 6px; padding: .5rem .7rem; }
   .error { color: #b91c1c; font-size: .9rem; }
   .aviso { background: #ecfdf3; border: 1px solid #a7e3bd; border-radius: 6px; padding: .6rem .8rem; font-size: .9rem; }
 </style>
@@ -45,6 +46,7 @@
     <label>Categoría <select name="categoria" required></select></label>
     <label>Precio ($, opcional) <input name="precio" type="number" min="0" step="any"></label>
     <label>Descripción <textarea name="descripcion" rows="4" maxlength="2000"></textarea></label>
+    <p class="nota">Al publicar, el botón para borrar el anuncio aparecerá solo en este navegador. No hay otra forma de acceder al anuncio, así que no borres los datos del navegador si quieres conservar el control.</p>
     <div><button type="submit">Publicar</button> <button type="button" class="sec" id="cancelar-publicar">Cancelar</button></div>
     <div class="error" id="error-publicar"></div>
   </form>
