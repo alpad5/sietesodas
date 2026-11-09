@@ -15,20 +15,55 @@
   button { cursor: pointer; border: 1px solid var(--texto); background: var(--texto); color: var(--fondo); padding: .45rem .9rem; border-radius: 6px; }
   button.sec { background: transparent; color: var(--texto); border-color: var(--linea); }
   input, select, textarea { width: 100%; padding: .5rem .6rem; border: 1px solid var(--linea); border-radius: 6px; background: #fff; }
-  form.busqueda { display: grid; grid-template-columns: 1fr auto; gap: .5rem; margin: 1rem 0 .5rem; }
+  form.busqueda { margin: 1rem 0 .5rem; }
+  form.busqueda input { -webkit-appearance: none; appearance: none; padding-left: 2.2rem; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6b66' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='M15.5 15.5L21 21'/%3E%3C/svg%3E") no-repeat .7rem center / 1rem; }
   nav { display: flex; flex-wrap: wrap; gap: .4rem; margin: .5rem 0 .25rem; }
   nav button { padding: .25rem .7rem; font-size: .9rem; }
   nav button.activa { background: var(--texto); color: var(--fondo); border-color: var(--texto); }
   nav button:not(.activa) { background: transparent; color: var(--texto); border-color: var(--linea); }
   .estado { color: var(--suave); font-size: .85rem; margin: .25rem 0 1rem; }
-  .tarjeta { border: 1px solid var(--linea); background: #fff; border-radius: 8px; padding: .8rem 1rem; margin-bottom: .6rem; }
-  .tarjeta h3 { margin: 0; font-size: 1.05rem; display: flex; justify-content: space-between; gap: 1rem; }
+  .tarjeta { border: 1px solid var(--linea); background: #fff; border-radius: 8px; padding: .8rem 1rem; margin-bottom: .6rem; cursor: pointer; transition: transform .15s ease-out, box-shadow .15s ease-out; }
+  @media (hover: hover) { .tarjeta:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.07); } }
+  .tarjeta h3 { margin: 0; font-size: 1.05rem; }
+  .cab { display: flex; justify-content: space-between; gap: 1rem; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; border-radius: 0; }
+  .cab:active { transform: none; }
+  .tarjeta:not(.abierta) .desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+  .extra { display: none; margin-top: .6rem; }
+  .tarjeta.abierta .extra { display: block; }
   .meta { color: var(--suave); font-size: .85rem; margin: .15rem 0 .4rem; }
   .tarjeta p { margin: 0; white-space: pre-wrap; }
   .acciones { margin-top: .6rem; }
   #publicar { display: none; border: 1px solid var(--linea); background: #fff; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
   #publicar.abierto { display: grid; gap: .6rem; }
+  #publicar { view-transition-name: formulario; }
   label { display: grid; gap: .2rem; font-size: .9rem; color: var(--suave); }
+  .nota { margin: 0; font-size: .85rem; color: var(--suave); background: #fffbeb; border: 1px solid #f3e2a9; border-radius: 6px; padding: .5rem .7rem; }
+  button { transition: transform .08s; }
+  button:active { transform: scale(.97); }
+  .vacio { color: var(--suave); animation: aparecer .2s ease-out; }
+  button[type=submit] { position: relative; overflow: hidden; }
+  button.verificando::after { content: ''; position: absolute; inset: 0 auto 0 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent); animation: barrido 1.1s ease-in-out infinite; }
+  @keyframes barrido { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+  #abrir-publicar::before { content: '+'; content: '+' / ''; display: inline-block; width: 0; margin-right: 0; overflow: hidden; opacity: 0; transform: rotate(-90deg); transition: width .2s ease-out, margin .2s ease-out, opacity .2s ease-out, transform .25s ease-out; }
+  @media (hover: hover) { #abrir-publicar:hover::before { width: .7em; margin-right: .35em; opacity: 1; transform: none; } }
+  #abrir-publicar:focus-visible::before { width: .7em; margin-right: .35em; opacity: 1; transform: none; }
+  button.listo { animation: aparecer .2s ease-out; }
+  .tarjeta.nueva { animation: destacar 2.5s ease-out .2s backwards; }
+  @keyframes destacar { from { background: #e6e5d6; } }
+  @keyframes aparecer { from { opacity: 0; } }
+  /* Transiciones entre listados: las tarjetas que se quedan se deslizan, las demás se desvanecen. */
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+  ::view-transition-group(*) { animation-duration: .2s; animation-timing-function: ease-out; }
+  ::view-transition-old(*), ::view-transition-new(*) { animation-duration: .2s; }
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none; }
+    button, .tarjeta { transition: none; }
+    .tarjeta:hover { transform: none; }
+    button:active { transform: none; }
+    .vacio, button.listo, .tarjeta.nueva { animation: none; }
+    button.verificando::after { display: none; }
+    #abrir-publicar::before { transition: none; }
+  }
   .error { color: #b91c1c; font-size: .9rem; }
   .aviso { background: #ecfdf3; border: 1px solid #a7e3bd; border-radius: 6px; padding: .6rem .8rem; font-size: .9rem; }
 </style>
@@ -37,7 +72,7 @@
 <main>
   <header>
     <h1>sietesodas</h1>
-    <button id="abrir-publicar" type="button">Publicar anuncio</button>
+    <button id="abrir-publicar" type="button">Publicar</button>
   </header>
 
   <form id="publicar" autocomplete="off">
@@ -45,6 +80,7 @@
     <label>Categoría <select name="categoria" required></select></label>
     <label>Precio ($, opcional) <input name="precio" type="number" min="0" step="any"></label>
     <label>Descripción <textarea name="descripcion" rows="4" maxlength="2000"></textarea></label>
+    <p class="nota">Al publicar, el botón para borrar el anuncio aparecerá solo en este navegador. No hay otra forma de acceder al anuncio, así que no borres los datos del navegador si quieres conservar el control.</p>
     <div><button type="submit">Publicar</button> <button type="button" class="sec" id="cancelar-publicar">Cancelar</button></div>
     <div class="error" id="error-publicar"></div>
   </form>
@@ -52,7 +88,6 @@
 
   <form class="busqueda" id="busqueda">
     <input name="q" type="search" placeholder="Buscar guitarra, pedal, bajo…">
-    <button type="submit">Buscar</button>
   </form>
   <nav id="categorias" aria-label="Categorías"></nav>
   <div class="estado" id="estado"></div>
@@ -117,7 +152,16 @@ function pintarCategorias() {
   }
 }
 
-async function buscar() {
+// Anima un cambio de la página con View Transitions; sin soporte, actualiza directo.
+function animar(actualizar) {
+  if (!document.startViewTransition) return actualizar();
+  document.startViewTransition(actualizar);
+}
+let primeraCarga = true; // el primer listado aparece sin animar
+
+let ultimaBusqueda = 0; // descarta respuestas que llegan fuera de orden
+async function buscar(destacar) {
+  const numero = ++ultimaBusqueda;
   const f = new FormData($('#busqueda'));
   const cuerpo = { lat: ubicacion.lat, lng: ubicacion.lng, radius_km: RADIO_KM };
   if (categoria) cuerpo.category = categoria;
@@ -125,21 +169,48 @@ async function buscar() {
   const res = $('#resultados');
   try {
     const posts = await api('POST', '/search', cuerpo);
-    $('#estado').textContent = (ubicacion.real ? 'Cerca de ti' : 'Cerca del centro de Montevideo (ubicación por defecto)')
-      + ' · ' + posts.length + (posts.length === 1 ? ' anuncio' : ' anuncios');
-    res.replaceChildren(...posts.map(tarjeta));
+    if (numero !== ultimaBusqueda) return;
+    const pintar = () => {
+      $('#estado').textContent = (ubicacion.real ? 'Cerca de ti' : 'Cerca del centro de Montevideo (ubicación por defecto)')
+        + ' · ' + posts.length + (posts.length === 1 ? ' anuncio' : ' anuncios');
+      res.replaceChildren(...posts.map((p) => tarjeta(p, destacar)));
+      if (!posts.length) res.append(el('p', 'No hay anuncios con estos filtros.', 'vacio'));
+      res.querySelector('.nueva')?.scrollIntoView({ block: 'nearest' });
+    };
+    if (primeraCarga) { primeraCarga = false; pintar(); } else animar(pintar);
   } catch (e) {
     $('#estado').textContent = 'No se pudo buscar: ' + e.message;
   }
 }
 
-function tarjeta(p) {
+function tarjeta(p, destacar) {
   const d = p.payload;
   const c = el('article', undefined, 'tarjeta');
+  if (p.id === destacar) c.classList.add('nueva');
+  c.style.viewTransitionName = 'p-' + String(p.id).replace(/[^\w-]/g, '_');
   const h = el('h3');
-  h.append(el('span', d.title), el('span', d.price != null ? '$' + d.price : ''));
+  const cab = el('button', undefined, 'cab');
+  cab.type = 'button';
+  cab.setAttribute('aria-expanded', 'false');
+  cab.append(el('span', d.title), el('span', d.price != null ? '$' + d.price : ''));
+  h.append(cab);
   c.append(h, el('div', nombreCategoria(d.category), 'meta'));
-  if (d.description) c.append(el('p', d.description));
+  if (d.description) c.append(el('p', d.description, 'desc'));
+  // Marcador de lugar: el contacto llegará con el relé de correo.
+  const extra = el('div', undefined, 'extra');
+  const contactar = el('button', 'Contactar (próximamente)', 'sec');
+  contactar.type = 'button';
+  contactar.disabled = true;
+  extra.append(contactar);
+  c.append(extra);
+  c.onclick = (e) => {
+    if (e.target.closest('.acciones, .extra') || String(getSelection())) return;
+    const abrir = !c.classList.contains('abierta');
+    animar(() => {
+      c.classList.toggle('abierta', abrir);
+      cab.setAttribute('aria-expanded', abrir);
+    });
+  };
   const token = mias()[p.id];
   if (token) {
     const a = el('div', undefined, 'acciones');
@@ -159,11 +230,20 @@ function tarjeta(p) {
   return c;
 }
 
-$('#busqueda').onsubmit = (e) => { e.preventDefault(); buscar(); };
+// Se busca al escribir, con una pausa corta; Enter busca de inmediato.
+let espera;
+$('#busqueda').oninput = () => { clearTimeout(espera); espera = setTimeout(buscar, 250); };
+$('#busqueda').onsubmit = (e) => { e.preventDefault(); clearTimeout(espera); buscar(); };
 
 const formPublicar = $('#publicar');
-$('#abrir-publicar').onclick = () => formPublicar.classList.toggle('abierto');
-$('#cancelar-publicar').onclick = () => formPublicar.classList.remove('abierto');
+$('#abrir-publicar').onclick = () => {
+  const abrir = !formPublicar.classList.contains('abierto');
+  animar(() => formPublicar.classList.toggle('abierto', abrir));
+  if (abrir) formPublicar.elements.titulo.focus();
+};
+$('#cancelar-publicar').onclick = () => animar(() => formPublicar.classList.remove('abierto'));
+// Pausas que dejan ver la animación; no existen si el usuario pidió menos movimiento.
+const pausa = (ms) => new Promise((ok) => setTimeout(ok, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ms));
 formPublicar.onsubmit = async (e) => {
   e.preventDefault();
   const f = new FormData(formPublicar);
@@ -174,21 +254,26 @@ formPublicar.onsubmit = async (e) => {
   const boton = formPublicar.querySelector('button[type=submit]');
   boton.disabled = true;
   boton.textContent = 'Verificando…';
+  boton.classList.add('verificando');
   try {
-    const desafio = await api('GET', '/desafio');
+    const [desafio] = await Promise.all([api('GET', '/desafio'), pausa(700)]);
     const pow = JSON.stringify({ challenge: desafio, solution: await resolverDesafio(desafio) });
     const creado = await api('POST', '/objects', { payload, locator: { lat: ubicacion.lat, lng: ubicacion.lng }, owned: true }, null, { 'x-pow': pow });
     const m = mias(); m[creado.id] = creado.owner_token; guardarMias(m);
+    boton.classList.replace('verificando', 'listo');
+    boton.textContent = '✓ Publicado';
+    await pausa(900);
     formPublicar.reset();
     formPublicar.classList.remove('abierto');
     const aviso = $('#aviso');
     aviso.hidden = false;
     aviso.textContent = 'Anuncio publicado. Lo podrás borrar desde este navegador; no hay otra forma de gestionarlo, así que no borres los datos del navegador si quieres conservar el control.';
-    buscar();
+    buscar(creado.id);
   } catch (err) {
     $('#error-publicar').textContent = err.message;
   } finally {
     boton.disabled = false;
+    boton.classList.remove('verificando', 'listo');
     boton.textContent = 'Publicar';
   }
 };
