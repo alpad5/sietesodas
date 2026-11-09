@@ -15,7 +15,8 @@
   button { cursor: pointer; border: 1px solid var(--texto); background: var(--texto); color: var(--fondo); padding: .45rem .9rem; border-radius: 6px; }
   button.sec { background: transparent; color: var(--texto); border-color: var(--linea); }
   input, select, textarea { width: 100%; padding: .5rem .6rem; border: 1px solid var(--linea); border-radius: 6px; background: #fff; }
-  form.busqueda { display: grid; grid-template-columns: 1fr auto; gap: .5rem; margin: 1rem 0 .5rem; }
+  form.busqueda { margin: 1rem 0 .5rem; }
+  form.busqueda input { -webkit-appearance: none; appearance: none; padding-left: 2.2rem; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6b66' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='M15.5 15.5L21 21'/%3E%3C/svg%3E") no-repeat .7rem center / 1rem; }
   nav { display: flex; flex-wrap: wrap; gap: .4rem; margin: .5rem 0 .25rem; }
   nav button { padding: .25rem .7rem; font-size: .9rem; }
   nav button.activa { background: var(--texto); color: var(--fondo); border-color: var(--texto); }
@@ -87,7 +88,6 @@
 
   <form class="busqueda" id="busqueda">
     <input name="q" type="search" placeholder="Buscar guitarra, pedal, bajo…">
-    <button type="submit">Buscar</button>
   </form>
   <nav id="categorias" aria-label="Categorías"></nav>
   <div class="estado" id="estado"></div>
@@ -159,7 +159,9 @@ function animar(actualizar) {
 }
 let primeraCarga = true; // el primer listado aparece sin animar
 
+let ultimaBusqueda = 0; // descarta respuestas que llegan fuera de orden
 async function buscar(destacar) {
+  const numero = ++ultimaBusqueda;
   const f = new FormData($('#busqueda'));
   const cuerpo = { lat: ubicacion.lat, lng: ubicacion.lng, radius_km: RADIO_KM };
   if (categoria) cuerpo.category = categoria;
@@ -167,6 +169,7 @@ async function buscar(destacar) {
   const res = $('#resultados');
   try {
     const posts = await api('POST', '/search', cuerpo);
+    if (numero !== ultimaBusqueda) return;
     const pintar = () => {
       $('#estado').textContent = (ubicacion.real ? 'Cerca de ti' : 'Cerca del centro de Montevideo (ubicación por defecto)')
         + ' · ' + posts.length + (posts.length === 1 ? ' anuncio' : ' anuncios');
@@ -227,7 +230,10 @@ function tarjeta(p, destacar) {
   return c;
 }
 
-$('#busqueda').onsubmit = (e) => { e.preventDefault(); buscar(); };
+// Se busca al escribir, con una pausa corta; Enter busca de inmediato.
+let espera;
+$('#busqueda').oninput = () => { clearTimeout(espera); espera = setTimeout(buscar, 250); };
+$('#busqueda').onsubmit = (e) => { e.preventDefault(); clearTimeout(espera); buscar(); };
 
 const formPublicar = $('#publicar');
 $('#abrir-publicar').onclick = () => {
