@@ -21,8 +21,14 @@
   nav button.activa { background: var(--texto); color: var(--fondo); border-color: var(--texto); }
   nav button:not(.activa) { background: transparent; color: var(--texto); border-color: var(--linea); }
   .estado { color: var(--suave); font-size: .85rem; margin: .25rem 0 1rem; }
-  .tarjeta { border: 1px solid var(--linea); background: #fff; border-radius: 8px; padding: .8rem 1rem; margin-bottom: .6rem; }
-  .tarjeta h3 { margin: 0; font-size: 1.05rem; display: flex; justify-content: space-between; gap: 1rem; }
+  .tarjeta { border: 1px solid var(--linea); background: #fff; border-radius: 8px; padding: .8rem 1rem; margin-bottom: .6rem; cursor: pointer; transition: transform .15s ease-out, box-shadow .15s ease-out; }
+  @media (hover: hover) { .tarjeta:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.07); } }
+  .tarjeta h3 { margin: 0; font-size: 1.05rem; }
+  .cab { display: flex; justify-content: space-between; gap: 1rem; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; border-radius: 0; }
+  .cab:active { transform: none; }
+  .tarjeta:not(.abierta) .desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+  .extra { display: none; margin-top: .6rem; }
+  .tarjeta.abierta .extra { display: block; }
   .meta { color: var(--suave); font-size: .85rem; margin: .15rem 0 .4rem; }
   .tarjeta p { margin: 0; white-space: pre-wrap; }
   .acciones { margin-top: .6rem; }
@@ -40,7 +46,8 @@
   ::view-transition-old(*), ::view-transition-new(*) { animation-duration: .2s; }
   @media (prefers-reduced-motion: reduce) {
     ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none; }
-    button { transition: none; }
+    button, .tarjeta { transition: none; }
+    .tarjeta:hover { transform: none; }
     button:active { transform: none; }
     .vacio { animation: none; }
   }
@@ -164,9 +171,28 @@ function tarjeta(p) {
   const c = el('article', undefined, 'tarjeta');
   c.style.viewTransitionName = 'p-' + String(p.id).replace(/[^\w-]/g, '_');
   const h = el('h3');
-  h.append(el('span', d.title), el('span', d.price != null ? '$' + d.price : ''));
+  const cab = el('button', undefined, 'cab');
+  cab.type = 'button';
+  cab.setAttribute('aria-expanded', 'false');
+  cab.append(el('span', d.title), el('span', d.price != null ? '$' + d.price : ''));
+  h.append(cab);
   c.append(h, el('div', nombreCategoria(d.category), 'meta'));
-  if (d.description) c.append(el('p', d.description));
+  if (d.description) c.append(el('p', d.description, 'desc'));
+  // Marcador de lugar: el contacto llegará con el relé de correo.
+  const extra = el('div', undefined, 'extra');
+  const contactar = el('button', 'Contactar (próximamente)', 'sec');
+  contactar.type = 'button';
+  contactar.disabled = true;
+  extra.append(contactar);
+  c.append(extra);
+  c.onclick = (e) => {
+    if (e.target.closest('.acciones, .extra') || String(getSelection())) return;
+    const abrir = !c.classList.contains('abierta');
+    animar(() => {
+      c.classList.toggle('abierta', abrir);
+      cab.setAttribute('aria-expanded', abrir);
+    });
+  };
   const token = mias()[p.id];
   if (token) {
     const a = el('div', undefined, 'acciones');
