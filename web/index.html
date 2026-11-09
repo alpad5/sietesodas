@@ -34,11 +34,21 @@
   .acciones { margin-top: .6rem; }
   #publicar { display: none; border: 1px solid var(--linea); background: #fff; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
   #publicar.abierto { display: grid; gap: .6rem; }
+  #publicar { view-transition-name: formulario; }
   label { display: grid; gap: .2rem; font-size: .9rem; color: var(--suave); }
   .nota { margin: 0; font-size: .85rem; color: var(--suave); background: #fffbeb; border: 1px solid #f3e2a9; border-radius: 6px; padding: .5rem .7rem; }
   button { transition: transform .08s; }
   button:active { transform: scale(.97); }
   .vacio { color: var(--suave); animation: aparecer .2s ease-out; }
+  button[type=submit] { position: relative; overflow: hidden; }
+  button.verificando::after { content: ''; position: absolute; inset: 0 auto 0 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent); animation: barrido 1.1s ease-in-out infinite; }
+  @keyframes barrido { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+  #abrir-publicar::before { content: '+'; content: '+' / ''; display: inline-block; width: 0; margin-right: 0; overflow: hidden; opacity: 0; transform: rotate(-90deg); transition: width .2s ease-out, margin .2s ease-out, opacity .2s ease-out, transform .25s ease-out; }
+  @media (hover: hover) { #abrir-publicar:hover::before { width: .7em; margin-right: .35em; opacity: 1; transform: none; } }
+  #abrir-publicar:focus-visible::before { width: .7em; margin-right: .35em; opacity: 1; transform: none; }
+  button.listo { animation: aparecer .2s ease-out; }
+  .tarjeta.nueva { animation: destacar 2.5s ease-out .2s backwards; }
+  @keyframes destacar { from { background: #e6e5d6; } }
   @keyframes aparecer { from { opacity: 0; } }
   /* Transiciones entre listados: las tarjetas que se quedan se deslizan, las demás se desvanecen. */
   ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
@@ -49,7 +59,9 @@
     button, .tarjeta { transition: none; }
     .tarjeta:hover { transform: none; }
     button:active { transform: none; }
-    .vacio { animation: none; }
+    .vacio, button.listo, .tarjeta.nueva { animation: none; }
+    button.verificando::after { display: none; }
+    #abrir-publicar::before { transition: none; }
   }
   .error { color: #b91c1c; font-size: .9rem; }
   .aviso { background: #ecfdf3; border: 1px solid #a7e3bd; border-radius: 6px; padding: .6rem .8rem; font-size: .9rem; }
@@ -59,7 +71,7 @@
 <main>
   <header>
     <h1>sietesodas</h1>
-    <button id="abrir-publicar" type="button">Publicar anuncio</button>
+    <button id="abrir-publicar" type="button">Publicar</button>
   </header>
 
   <form id="publicar" autocomplete="off">
@@ -140,14 +152,14 @@ function pintarCategorias() {
   }
 }
 
-// Anima el cambio de listado con View Transitions; sin soporte, o en la primera carga, actualiza directo.
-let primeraCarga = true;
+// Anima un cambio de la página con View Transitions; sin soporte, actualiza directo.
 function animar(actualizar) {
-  if (primeraCarga || !document.startViewTransition) { primeraCarga = false; return actualizar(); }
+  if (!document.startViewTransition) return actualizar();
   document.startViewTransition(actualizar);
 }
+let primeraCarga = true; // el primer listado aparece sin animar
 
-async function buscar() {
+async function buscar(destacar) {
   const f = new FormData($('#busqueda'));
   const cuerpo = { lat: ubicacion.lat, lng: ubicacion.lng, radius_km: RADIO_KM };
   if (categoria) cuerpo.category = categoria;
@@ -155,20 +167,23 @@ async function buscar() {
   const res = $('#resultados');
   try {
     const posts = await api('POST', '/search', cuerpo);
-    animar(() => {
+    const pintar = () => {
       $('#estado').textContent = (ubicacion.real ? 'Cerca de ti' : 'Cerca del centro de Montevideo (ubicación por defecto)')
         + ' · ' + posts.length + (posts.length === 1 ? ' anuncio' : ' anuncios');
-      res.replaceChildren(...posts.map(tarjeta));
+      res.replaceChildren(...posts.map((p) => tarjeta(p, destacar)));
       if (!posts.length) res.append(el('p', 'No hay anuncios con estos filtros.', 'vacio'));
-    });
+      res.querySelector('.nueva')?.scrollIntoView({ block: 'nearest' });
+    };
+    if (primeraCarga) { primeraCarga = false; pintar(); } else animar(pintar);
   } catch (e) {
     $('#estado').textContent = 'No se pudo buscar: ' + e.message;
   }
 }
 
-function tarjeta(p) {
+function tarjeta(p, destacar) {
   const d = p.payload;
   const c = el('article', undefined, 'tarjeta');
+  if (p.id === destacar) c.classList.add('nueva');
   c.style.viewTransitionName = 'p-' + String(p.id).replace(/[^\w-]/g, '_');
   const h = el('h3');
   const cab = el('button', undefined, 'cab');
@@ -215,8 +230,14 @@ function tarjeta(p) {
 $('#busqueda').onsubmit = (e) => { e.preventDefault(); buscar(); };
 
 const formPublicar = $('#publicar');
-$('#abrir-publicar').onclick = () => formPublicar.classList.toggle('abierto');
-$('#cancelar-publicar').onclick = () => formPublicar.classList.remove('abierto');
+$('#abrir-publicar').onclick = () => {
+  const abrir = !formPublicar.classList.contains('abierto');
+  animar(() => formPublicar.classList.toggle('abierto', abrir));
+  if (abrir) formPublicar.elements.titulo.focus();
+};
+$('#cancelar-publicar').onclick = () => animar(() => formPublicar.classList.remove('abierto'));
+// Pausas que dejan ver la animación; no existen si el usuario pidió menos movimiento.
+const pausa = (ms) => new Promise((ok) => setTimeout(ok, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ms));
 formPublicar.onsubmit = async (e) => {
   e.preventDefault();
   const f = new FormData(formPublicar);
@@ -227,21 +248,26 @@ formPublicar.onsubmit = async (e) => {
   const boton = formPublicar.querySelector('button[type=submit]');
   boton.disabled = true;
   boton.textContent = 'Verificando…';
+  boton.classList.add('verificando');
   try {
-    const desafio = await api('GET', '/desafio');
+    const [desafio] = await Promise.all([api('GET', '/desafio'), pausa(700)]);
     const pow = JSON.stringify({ challenge: desafio, solution: await resolverDesafio(desafio) });
     const creado = await api('POST', '/objects', { payload, locator: { lat: ubicacion.lat, lng: ubicacion.lng }, owned: true }, null, { 'x-pow': pow });
     const m = mias(); m[creado.id] = creado.owner_token; guardarMias(m);
+    boton.classList.replace('verificando', 'listo');
+    boton.textContent = '✓ Publicado';
+    await pausa(900);
     formPublicar.reset();
     formPublicar.classList.remove('abierto');
     const aviso = $('#aviso');
     aviso.hidden = false;
     aviso.textContent = 'Anuncio publicado. Lo podrás borrar desde este navegador; no hay otra forma de gestionarlo, así que no borres los datos del navegador si quieres conservar el control.';
-    buscar();
+    buscar(creado.id);
   } catch (err) {
     $('#error-publicar').textContent = err.message;
   } finally {
     boton.disabled = false;
+    boton.classList.remove('verificando', 'listo');
     boton.textContent = 'Publicar';
   }
 };
