@@ -43,9 +43,9 @@
   button[type=submit] { position: relative; overflow: hidden; }
   button.verificando::after { content: ''; position: absolute; inset: 0 auto 0 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent); animation: barrido 1.1s ease-in-out infinite; }
   @keyframes barrido { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
-  #abrir-publicar::before { content: '+'; display: inline-block; width: 0; margin-right: 0; overflow: hidden; opacity: 0; transform: rotate(-90deg); transition: width .2s ease-out, margin .2s ease-out, opacity .2s ease-out, transform .25s ease-out; }
-  @media (hover: hover) { #abrir-publicar:hover::before { width: .7em; margin-right: .35em; opacity: 1; transform: none; } }
-  #abrir-publicar:focus-visible::before { width: .7em; margin-right: .35em; opacity: 1; transform: none; }
+  #abrir-publicar .mas { display: inline-block; vertical-align: bottom; max-width: 0; overflow: hidden; white-space: pre; opacity: 0; transition: max-width .25s ease-out, opacity .2s ease-out; }
+  @media (hover: hover) { #abrir-publicar:hover .mas { max-width: 6em; opacity: 1; } }
+  #abrir-publicar:focus-visible .mas { max-width: 6em; opacity: 1; }
   button.listo { animation: aparecer .2s ease-out; }
   .tarjeta.nueva { animation: destacar 2.5s ease-out .2s backwards; }
   @keyframes destacar { from { background: #e6e5d6; } }
@@ -61,7 +61,7 @@
     button:active { transform: none; }
     .vacio, button.listo, .tarjeta.nueva { animation: none; }
     button.verificando::after { display: none; }
-    #abrir-publicar::before { transition: none; }
+    #abrir-publicar .mas { transition: none; }
   }
   .error { color: #b91c1c; font-size: .9rem; }
   .aviso { background: #ecfdf3; border: 1px solid #a7e3bd; border-radius: 6px; padding: .6rem .8rem; font-size: .9rem; }
@@ -71,7 +71,7 @@
 <main>
   <header>
     <h1>sietesodas</h1>
-    <button id="abrir-publicar" type="button">Publicar anuncio</button>
+    <button id="abrir-publicar" type="button">Publicar<span class="mas"> anuncio</span></button>
   </header>
 
   <form id="publicar" autocomplete="off">
