@@ -30,6 +30,20 @@
   #publicar.abierto { display: grid; gap: .6rem; }
   label { display: grid; gap: .2rem; font-size: .9rem; color: var(--suave); }
   .nota { margin: 0; font-size: .85rem; color: var(--suave); background: #fffbeb; border: 1px solid #f3e2a9; border-radius: 6px; padding: .5rem .7rem; }
+  button { transition: transform .08s; }
+  button:active { transform: scale(.97); }
+  .vacio { color: var(--suave); animation: aparecer .2s ease-out; }
+  @keyframes aparecer { from { opacity: 0; } }
+  /* Transiciones entre listados: las tarjetas que se quedan se deslizan, las demás se desvanecen. */
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+  ::view-transition-group(*) { animation-duration: .2s; animation-timing-function: ease-out; }
+  ::view-transition-old(*), ::view-transition-new(*) { animation-duration: .2s; }
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none; }
+    button { transition: none; }
+    button:active { transform: none; }
+    .vacio { animation: none; }
+  }
   .error { color: #b91c1c; font-size: .9rem; }
   .aviso { background: #ecfdf3; border: 1px solid #a7e3bd; border-radius: 6px; padding: .6rem .8rem; font-size: .9rem; }
 </style>
@@ -119,6 +133,13 @@ function pintarCategorias() {
   }
 }
 
+// Anima el cambio de listado con View Transitions; sin soporte, o en la primera carga, actualiza directo.
+let primeraCarga = true;
+function animar(actualizar) {
+  if (primeraCarga || !document.startViewTransition) { primeraCarga = false; return actualizar(); }
+  document.startViewTransition(actualizar);
+}
+
 async function buscar() {
   const f = new FormData($('#busqueda'));
   const cuerpo = { lat: ubicacion.lat, lng: ubicacion.lng, radius_km: RADIO_KM };
@@ -127,9 +148,12 @@ async function buscar() {
   const res = $('#resultados');
   try {
     const posts = await api('POST', '/search', cuerpo);
-    $('#estado').textContent = (ubicacion.real ? 'Cerca de ti' : 'Cerca del centro de Montevideo (ubicación por defecto)')
-      + ' · ' + posts.length + (posts.length === 1 ? ' anuncio' : ' anuncios');
-    res.replaceChildren(...posts.map(tarjeta));
+    animar(() => {
+      $('#estado').textContent = (ubicacion.real ? 'Cerca de ti' : 'Cerca del centro de Montevideo (ubicación por defecto)')
+        + ' · ' + posts.length + (posts.length === 1 ? ' anuncio' : ' anuncios');
+      res.replaceChildren(...posts.map(tarjeta));
+      if (!posts.length) res.append(el('p', 'No hay anuncios con estos filtros.', 'vacio'));
+    });
   } catch (e) {
     $('#estado').textContent = 'No se pudo buscar: ' + e.message;
   }
@@ -138,6 +162,7 @@ async function buscar() {
 function tarjeta(p) {
   const d = p.payload;
   const c = el('article', undefined, 'tarjeta');
+  c.style.viewTransitionName = 'p-' + String(p.id).replace(/[^\w-]/g, '_');
   const h = el('h3');
   h.append(el('span', d.title), el('span', d.price != null ? '$' + d.price : ''));
   c.append(h, el('div', nombreCategoria(d.category), 'meta'));
