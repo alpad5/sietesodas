@@ -5,9 +5,10 @@
 Newest context first. The session notes below are the original design log; where they disagree with this list or the code, this list and the code win.
 
 ### UI
-- [ ] Publish form: sellers do not realize the delete button only appears after publishing. Add a notice before publishing saying it will appear in this browser and that there is no other way to access the post (the owner token lives in `localStorage`).
-
-- [ ] UI and aesthetics pass (waiting on the user's inspiration). Goals: keep the site lightning fast and ultra light (no frameworks, no heavy assets), but make it catchy on the eyes, with tiny, almost unnoticeable animations where they add feel: clicking a category, filtering results, publishing. Prefer CSS-only transitions.
+- [x] Publish form notice that the delete button only lives in this browser (PR #4).
+- [x] Tiny animations: listing changes via View Transitions, card hover lift and click-to-expand, publish flow, form opening, search as you type (PRs #5 to #8). All off under `prefers-reduced-motion`.
+- [ ] Wider aesthetics pass, only if the user finds inspiration. The calm palette stays as is. Constraints still apply: no frameworks, ultra light, CSS-only where possible.
+- [ ] Replace the disabled "Contactar (próximamente)" placeholder in the expanded card with the real contact action once the alias relay exists.
 
 ### Next features
 - [ ] Private storage for the seller's contact email (never in the public post payload), kept in step with the post's lifetime and deleted when the post expires or is deleted.
@@ -60,3 +61,24 @@ Local repo, `git init` done but no commits, so not pushed. Reference clone of th
 5. **Later:** internal DMs as an option, photos, specific user flows, stack and data model.
 
 Session paused here. Resume tomorrow with todos 1 to 3.
+
+## 2026-11-09 — UI session, email deferred
+
+### Summary
+Started on the email provider, then parked it: the domain is not bought yet and the choice felt complex. Spent the rest of the session on the UI. Everything below is merged into `main` (PRs #4 to #8).
+
+### Email (deferred, nothing decided)
+- Leaning: Cloudflare Email Routing catch-all to an Email Worker that calls a webhook on the app. Outbound through Cloudflare Email Sending (beta, needs Workers Paid; about 3,000 emails/month included, then $0.35 per 1,000, prices to verify) or Resend/SES, always behind a single `send_email()` function.
+- Floated a simpler one-way relay for v1: the buyer writes to the alias, the seller receives the mail from the alias with `Reply-To` set to the buyer, and the conversation continues outside the site. No reply rewriting, but it still needs outbound sending, must never forward with the buyer's `From` (SPF/DMARC), and should check SPF/DKIM/DMARC results on inbound mail. Trade-off: the buyer's address is exposed to the seller.
+- Revisit once the domain exists.
+
+### UI shipped
+- Notice in the publish form about the delete button (#4).
+- View Transitions on every listing change, with a soft press effect on buttons and an empty state (#5).
+- Hover lift on cards, click to expand with the full description and a placeholder contact button (#6).
+- Publish flow: light sweep on the button while the proof-of-work runs, a short check, the form opens and closes with a transition, and the new card fades from a faint tint and scrolls into view. The header button reads "Publicar" with a "+" that rotates in on hover. The deliberate extra pauses are `pausa(700)` and `pausa(900)` in the submit handler (#7).
+- Live search 250 ms after the last keystroke, Enter searches at once, "Buscar" button replaced by a magnifier in the field, and late responses are discarded (#8).
+
+### Notes
+- The web page is embedded with `include_str!`, so HTML changes need a server rebuild.
+- Local test data: `/tmp/seed.py` publishes 27 posts (needs the app and Redis running; Redis was started from `/tmp` with persistence off). It is not in the repo.
